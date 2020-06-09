@@ -193,3 +193,11 @@ distrib (suc m) n p =
   ≡⟨ sym (*-multR n m) ⟩
     n * (suc m)
   ∎
+
+*-assoc : ∀ (m n p : ℕ) → (m * n) * p ≡ m * (n * p)
+*-assoc zero n p = refl
+*-assoc (suc m) n p rewrite distrib n (m * n) p | *-assoc m n p = refl
+
+-null : ∀ (n : ℕ) → zero ∸ n ≡ zero
+-null zero = refl
+-null (suc n) = refl
