@@ -229,8 +229,13 @@ Show that `suc m ≤ n` implies `m < n`, and conversely.
 
 
 ≤-impl-< : ∀ (m n : ℕ) → suc m ≤ n → m < n
-≤-impl-< zero (suc n) m≤n = z<s
-≤-impl-< (suc m) (suc n) (s≤s m≤n) = s<s (≤-impl-< m n m≤n)
+≤-impl-< zero (suc n) (s≤s m≤n) = z<s {n}
+≤-impl-< (suc m) (suc n) (s≤s m≤n) =
+  let r = ≤-impl-< m n m≤n
+  in s<s r
+
+-- ≤-impl-< zero (suc n) m≤n = z<s
+-- ≤-impl-< (suc m) (suc n) (s≤s m≤n) = s<s (≤-impl-< m n m≤n)
 
 <-impl-≤ : ∀ {m n : ℕ} → m < n → suc m ≤ n
 <-impl-≤ z<s = s≤s z≤n
