@@ -4,7 +4,7 @@ import Relation.Binary.PropositionalEquality as Eq
 open Eq using (_≡_; refl; cong)
 open Eq.≡-Reasoning using (begin_; _≡⟨⟩_; step-≡; _∎)
 open import Data.Nat using (ℕ; zero; suc; _+_; _*_)
-open import Data.Nat.Properties using (+-comm)
+open import Data.Nat.Properties using (+-comm; *-comm)
 
 
 data _≤_ : ℕ → ℕ → Set where
@@ -119,10 +119,17 @@ Show that multiplication is monotonic with regard to inequality.
 
 -}
 
--- *-monoʳ-≤ : ∀ (n p q : ℕ) → p ≤ q → n * p ≤ n * q
--- *-monoʳ-≤ zero p q p≤q = z≤n
--- -- *-monoʳ-≤ (suc n) p q p≤q  =  s≤s (+-monoʳ-≤ n p q p≤q)
--- *-monoʳ-≤ (suc n) p q p≤q  =  s≤s (*-monoʳ-≤ n p q p≤q)
+*-monoR-≤ : ∀ {n p q : ℕ} → p ≤ q → n * p ≤ n * q
+*-monoR-≤ {zero} {p} {q} p≤n = z≤n
+*-monoR-≤ {suc n} {p} {q} p≤n =
+  let r = *-monoR-≤ {n} {p} {q} p≤n
+  in +-mono-≤ p q (n * p) (n * q) p≤n r
+
+*-monoL-≤ : ∀ {m n p : ℕ} → m ≤ n → m * p ≤ n * p
+*-monoL-≤ {m} {n} {p} m≤n rewrite *-comm m p | *-comm n p = *-monoR-≤ {p} {m} {n} m≤n
+
+*-mono-≤ : ∀ (m n p q : ℕ) → m ≤ n → p ≤ q → m * p ≤ n * q
+*-mono-≤ m n p q m≤n p≤q  =  ≤-trans (*-monoL-≤ {m} {n} {p} m≤n) (*-monoR-≤ {n} {p} {q} p≤q)
 
 -- Strict inequality
 
@@ -210,6 +217,7 @@ As with inequality, some additional definitions may be required.
   --------
   → m + p < n + q
 +<-mono m n p q m<n p<q = <-trans (m + p) (n + p) (n + q) (+<-monoL m n p m<n) (+<-monoR n p q p<q)
+
 
 {-
 
