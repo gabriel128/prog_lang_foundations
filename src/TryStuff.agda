@@ -2,7 +2,7 @@ module TryStuff where
 
 
 import Relation.Binary.PropositionalEquality as Eq
--- open Eq using (_≡_; refl; cong)
+open Eq using (_≡_; refl; cong)
 
 
 -- open Eq.≡-Reasoning using (begin_; _≡⟨⟩_; step-≡; _∎)
@@ -20,6 +20,8 @@ data Id (A : Set) : Set  where
 
 data ⊥ : Set where
 
+-- x : {x : ℕ} → zero _≡_ zero
+-- x = ?
 -- infixl 4 suc
 -- infixl 6  _+_≡_
 
@@ -53,7 +55,6 @@ someList = 1 :: 2 :: []
 data Vec (A : Set) : ℕ → Set where
   [] : Vec A zero
   _::_ : {n : ℕ} → A → Vec A n → Vec A (suc n)
-
 
 someVec : Vec ℕ (suc (suc zero))
 someVec = 1 :: 2 :: []
@@ -107,3 +108,10 @@ lookupV = lookup someList1 (fsuc (fsuc fzero))
 --   suc+ : ∀ {n m k} → n + m ≡ k → suc n + m ≡ suc k
 
 -- +-rightZero : ∀ (n : ℕ) → n + zero ≡ n
+-- +-rightZero zero = z+
+-- +-rightZero (suc n) =
+--    begin
+--     (suc n) + zero
+--    ≡⟨ ? ⟩
+--     suc n
+--    ∎

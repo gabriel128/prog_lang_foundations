@@ -17,6 +17,12 @@ _+_ : ℕ → ℕ → ℕ
 zero + n = n
 (suc m) + n = suc (m + n)
 
+type : (x : ℕ) → Set
+type _ = ℕ
+
+x : type (zero)
+x = zero
+
 _ : 2 + 3 ≡ 5
 _ =
   begin
