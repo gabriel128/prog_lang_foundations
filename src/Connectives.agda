@@ -122,13 +122,6 @@ intR = inj₁
 intL : {A B : Set} → B → A ⊎ B
 intL = inj₂
 
--- case-⊎ : ∀ {A B C : Set}
-  -- → (A → C)
-  -- → (B → C)
-  -- → A ⊎ B
-  -- -----------
-  -- → C
-
 ⊎-to : ∀ {A B C : Set} → (A ⊎ B) ⊎ C → A ⊎ (B ⊎ C)
 ⊎-to (inj₁ (inj₁ x)) = inj₁ x
 ⊎-to (inj₁ (inj₂ x)) = (inj₂ ∘ inj₁) x
@@ -164,4 +157,35 @@ intL = inj₂
   ; from = ⊎-assoc-from
   ; from∘to = ⊎-from∘to
   ; to∘from = ⊎-to∘from
+  }
+
+-- False
+
+data ⊥ : Set where
+
+⊥-elim : ∀ {A : Set} → ⊥ → A
+⊥-elim ()
+
+uniq-⊥ : ∀ {C : Set} (h : ⊥ → C) (w : ⊥) → ⊥-elim w ≡ h w
+uniq-⊥ h ()
+
+⊥-count : ⊥ → ℕ
+⊥-count ()
+
+⊥-identityL : ∀ {A B C : Set} → ⊥ ⊎ B ≃ B
+⊥-identityL =
+  record
+  { to = λ{ (inj₂ x) → x}
+  ; from = λ{ x → inj₂ x}
+  ; from∘to = λ{ (inj₂ x) → refl}
+  ; to∘from = λ{ y → refl}
+  }
+
+⊥-identityR : ∀ {A B C : Set} → B ⊎ ⊥ ≃ B
+⊥-identityR =
+  record
+  { to = λ{ (inj₁ x) → x}
+  ; from = λ{ x → inj₁ x}
+  ; from∘to = λ{ (inj₁ x) → refl}
+  ; to∘from = λ{ y → refl}
   }
