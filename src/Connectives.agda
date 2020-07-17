@@ -189,3 +189,100 @@ uniq-⊥ h ()
   ; from∘to = λ{ (inj₁ x) → refl}
   ; to∘from = λ{ y → refl}
   }
+
+⊥-and : ∀ {A B : Set} → ⊥ × A ≃ ⊥
+⊥-and  =
+  record
+  { to = λ{ ⟨ x , x₁ ⟩ → x}
+  ; from = λ{ () }
+  ; from∘to = λ{ ⟨ () , x₁ ⟩ }
+  ; to∘from = λ{ () }
+  }
+
+-- Implication is function
+
+→-elim : ∀ {A B : Set} → (A → B) → A → B
+→-elim L M = L M
+
+η-→ : ∀ {A B : Set} (f : A → B) → (λ (x : A) → f x) ≡ f
+η-→ f = refl
+
+data Bool : Set where
+  true : Bool
+  false : Bool
+
+data Tri : Set where
+  aa : Tri
+  bb : Tri
+  cc : Tri
+
+-- Set of functions
+→-count : (Bool → Tri) → ℕ
+→-count f with f true | f false
+...          | aa     | aa      =   1
+...          | aa     | bb      =   2
+...          | aa     | cc      =   3
+...          | bb     | aa      =   4
+...          | bb     | bb      =   5
+...          | bb     | cc      =   6
+...          | cc     | aa      =   7
+...          | cc     | bb      =   8
+...          | cc     | cc      =   9
+
+
+currying : ∀ {A B C : Set} → (A → B → C) ≃ (A × B → C)
+currying =
+  record
+  {
+    -- (A → B → C) → A × B → C
+    to = λ{ f → λ{ ⟨ x , y ⟩ → f x y } }
+  ; from = λ f x y → f ⟨ x , y ⟩
+  ; from∘to = λ x → refl
+  ; to∘from = λ g → extensionality λ{ ⟨ x , y ⟩ → refl}
+  }
+
+→-distrib-⊎ : ∀ {A B C : Set} → (A ⊎ B → C) ≃ ((A → C) × (B → C))
+→-distrib-⊎ =
+  record
+  { to      = λ{ f → ⟨ f ∘ inj₁ , f ∘ inj₂ ⟩ }
+  ; from    = λ{ ⟨ g , h ⟩ → λ{ (inj₁ x) → g x ; (inj₂ y) → h y } }
+  ; from∘to = λ{ f → extensionality λ{ (inj₁ x) → refl ; (inj₂ y) → refl } }
+  ; to∘from = λ{ ⟨ g , h ⟩ → refl }
+  }
+
+→-distrib-× : ∀ {A B C : Set} → (A → B × C) ≃ (A → B) × (A → C)
+→-distrib-× =
+  record
+  { to      = λ{ f → ⟨ proj₁ ∘ f , proj₂ ∘ f ⟩ }
+  ; from    = λ{ ⟨ g , h ⟩ → λ x → ⟨ g x , h x ⟩ }
+  ; from∘to = λ{ f → extensionality λ{ x → η-× (f x) } }
+  ; to∘from = λ{ ⟨ g , h ⟩ → refl }
+  }
+
+×-distrib-⊎ : ∀ {A B C : Set} → (A ⊎ B) × C ≃ (A × C) ⊎ (B × C)
+×-distrib-⊎ =
+  record
+  { to = λ{ ⟨ inj₁ x , y ⟩ → inj₁ ⟨ x , y ⟩ ; ⟨ inj₂ x , y ⟩ → inj₂ ⟨ x , y ⟩}
+  ; from = λ{ (inj₁ ⟨ x , y ⟩) → ⟨ inj₁ x , y ⟩ ; (inj₂ ⟨ x , y ⟩) → ⟨ (inj₂ x) , y ⟩}
+  ; from∘to = λ{ ⟨ inj₁ x , z ⟩ → refl
+               ; ⟨ inj₂ y , z ⟩ → refl}
+  ; to∘from = λ{ (inj₁ ⟨ x , z ⟩) → refl
+               ; (inj₂ ⟨ y , z ⟩) → refl}
+  }
+
+⊎-weak-× : ∀ {A B C : Set} → (A ⊎ B) × C → A ⊎ (B × C)
+⊎-weak-× ⟨ inj₁ x , y ⟩ = inj₁ x
+⊎-weak-× ⟨ inj₂ x , y ⟩ = inj₂ ⟨ x , y ⟩
+
+⊎×-implies-×⊎ : ∀ {A B C D : Set} → (A × B) ⊎ (C × D) → (A ⊎ C) × (B ⊎ D)
+⊎×-implies-×⊎ (inj₁ ⟨ x , y ⟩) = ⟨ inj₁ x , inj₁ y ⟩
+⊎×-implies-×⊎ (inj₂ ⟨ x , y ⟩) = ⟨ inj₂ x , inj₂ y ⟩
+
+-- Does not hold
+×⊎-implies-⊎× : ∀ {A B C D : Set} → (A ⊎ C) × (B ⊎ D) → (A × B) ⊎ (C × D)
+×⊎-implies-⊎× ⟨ inj₁ x , inj₁ y ⟩ = inj₁ ⟨ x , y ⟩
+×⊎-implies-⊎× ⟨ inj₁ x , inj₂ y ⟩ = {!!}
+×⊎-implies-⊎× ⟨ inj₂ x , y ⟩ = {!!}
+
+-- Counter example: Consider B and C as empty sets then
+-- (A × B) ⊎ (C × D)  will be false
