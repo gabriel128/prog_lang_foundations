@@ -2,7 +2,7 @@ module Quantifiers where
 
 import Relation.Binary.PropositionalEquality as Eq
 open Eq using (_≡_; refl)
-open import Data.Nat using (ℕ; zero; suc; _+_; _*_; _>_; s≤s; z≤n)
+open import Data.Nat using (ℕ; zero; suc; _+_; _*_; _>_; _≤_; s≤s; z≤n)
 open import Relation.Nullary using (¬_)
 open import Function using (_∘_)
 open import Data.Product using (_×_; proj₁; proj₂) renaming (_,_ to ⟨_,_⟩)
@@ -137,7 +137,93 @@ odd-∃  : ∀ {n : ℕ} →  odd n → ∃[ m ] (1 + m * 2 ≡ n)
 
 even-∃ even-zero = ⟨ zero , refl ⟩
 even-∃ (even-suc x) with (odd-∃ x)
-even-∃ (even-suc x) | ⟨ n , refl ⟩ = ⟨ (suc n) , refl ⟩
+even-∃ (even-suc x) | ⟨ n , refl ⟩ = ⟨ n , {!!} ⟩
+-- ⟨ (suc n) , refl ⟩
 
 odd-∃  (odd-suc e)  with even-∃ e
 ...                | ⟨ m , refl ⟩  =  ⟨ m , refl ⟩
+
+
+even-∃' : ∀ {n : ℕ} → even n → ∃[ m ] (2 * m ≡ n)
+odd-∃'  : ∀ {n : ℕ} →  odd n → ∃[ m ] (m * 2 + 1 ≡ n)
+
+open Eq using (_≡_; refl; cong; sym)
+open Eq.≡-Reasoning using (begin_; _≡⟨⟩_; step-≡; _∎)
+
+n+0 : ∀ {n} → n + zero ≡ n
+n+0 {zero} = refl
+n+0 {suc n} = cong suc (n+0)
+
+n+1 : ∀ {n} → suc n ≡ n + 1
+n+1 {zero} = refl
+n+1 {suc n} = cong suc n+1
+
+suc+ : ∀ (m n : ℕ) → m + (suc n) ≡ suc (m + n)
+suc+ zero n = refl
+suc+ (suc m) n = cong suc (suc+ m n)
+
+n*2 : ∀ {n} → n + n ≡ n * 2
+n*2 {zero} = refl
+n*2 {suc n} =
+  begin
+    suc (n + suc n)
+  ≡⟨ cong suc (suc+ n n) ⟩
+    suc (suc (n + n))
+  ≡⟨ cong (suc ∘ suc) (n*2 {n}) ⟩
+    suc (suc (n * 2))
+  ∎
+
+assoc : ∀ {m n z} → m + (n + z) ≡ m + n + z
+assoc {zero} {n} {z} = refl
+assoc {suc m} {n} {z} = cong suc assoc
+
+x≤x : ∀ {x} → x ≤ x
+x≤x {zero} = z≤n
+x≤x {suc x} = s≤s x≤x
+
+postulate
+  x≤x+1 : ∀ {x} → x ≤ suc x
+  x+→x : ∀ {x} → x ≤ suc x → x ≤ x
+  x≤x+y : ∀ (x y : ℕ) → x ≤ y + (suc x)
+
+-- x≤x+y : ∀ (x y : ℕ) → x ≤ y + (suc x)
+-- x≤x+y x zero = x≤x+1
+-- x≤x+y zero (suc y) = z≤n
+-- x≤x+y (suc x) (suc y) with x+→x {x}
+-- ...                   | z = s≤s {!!}
+
++suc : ∀ n → n + suc (n + 0) ≡ n * 2 + 1
++suc zero = refl
++suc (suc n) =
+ begin
+    suc (n + suc (suc (n + zero)))
+  ≡⟨ cong suc (suc+ n (suc (n + zero))) ⟩
+    suc (suc (n + (suc (n + zero))))
+  ≡⟨ cong (suc ∘ suc) (suc+ (n) (n + zero)) ⟩
+    suc (suc (suc (n + (n + zero))))
+  ≡⟨ cong (suc ∘ suc ∘ suc) (assoc {n} {n} {zero}) ⟩
+     suc (suc (suc (n + n + zero)))
+  ≡⟨ cong (suc ∘ suc ∘ suc) (n+0 {n + n}) ⟩
+    suc (suc (suc (n + n)))
+  ≡⟨ cong (suc ∘ suc ∘ suc) n*2 ⟩
+    suc (suc (suc (n * 2)))
+  ≡⟨ cong (suc ∘ suc) n+1 ⟩
+    suc (suc (n * 2 + 1))
+  ∎
+
+even-∃' even-zero = ⟨ zero , refl ⟩
+even-∃' (even-suc x) with (odd-∃' x)
+even-∃' (even-suc x) | ⟨ n , refl ⟩ = ⟨ suc n , Eq.cong suc (+suc n)  ⟩
+
+∃-+-≤ : ∀ {y z} → y ≤ z → ∃[ x ] (x + y ≡ z)
+-- ∃-+-≤ {.0} {zero} z≤n = ⟨ zero , refl ⟩
+-- ∃-+-≤ {.0} {suc z} z≤n = ⟨ (suc z) , cong suc n+0 ⟩
+-- ∃-+-≤ {y} {z} (s≤s x) = ⟨ z ,  {!!} ⟩
+∃-+-≤ {zero} {z} y≤z = ⟨ z , n+0 ⟩
+∃-+-≤ {suc y} {suc z} (s≤s yz) with ∃-+-≤ {y} {z} yz
+∃-+-≤ {suc y} {suc .(p + y)} (s≤s yz) | ⟨ p , refl ⟩ = ⟨ p , suc+ p y ⟩
+
+∃-≤-+ : ∀ {y z} → ∃[ x ] (x + y ≡ z) → y ≤ z
+∃-≤-+ ⟨ zero , refl ⟩ = x≤x
+∃-≤-+ {zero} {.(suc (x + 0))} ⟨ suc x , refl ⟩ = z≤n
+∃-≤-+ {suc y} {.(suc (x + suc y))} ⟨ suc x , refl ⟩ = s≤s (x≤x+y y x)

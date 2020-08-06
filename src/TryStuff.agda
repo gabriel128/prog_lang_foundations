@@ -38,6 +38,13 @@ not : Bool → Bool
 not true = false
 not false = true
 
+isZero : ℕ → Bool
+isZero zero = true
+isZero (suc _) = false
+
+f : ℕ → ℕ
+f x rewrite isZero x = ?
+
 _||_ : Bool → Bool → Bool
 true || _ = true
 false || x = x
