@@ -216,9 +216,6 @@ even-∃' (even-suc x) with (odd-∃' x)
 even-∃' (even-suc x) | ⟨ n , refl ⟩ = ⟨ suc n , Eq.cong suc (+suc n)  ⟩
 
 ∃-+-≤ : ∀ {y z} → y ≤ z → ∃[ x ] (x + y ≡ z)
--- ∃-+-≤ {.0} {zero} z≤n = ⟨ zero , refl ⟩
--- ∃-+-≤ {.0} {suc z} z≤n = ⟨ (suc z) , cong suc n+0 ⟩
--- ∃-+-≤ {y} {z} (s≤s x) = ⟨ z ,  {!!} ⟩
 ∃-+-≤ {zero} {z} y≤z = ⟨ z , n+0 ⟩
 ∃-+-≤ {suc y} {suc z} (s≤s yz) with ∃-+-≤ {y} {z} yz
 ∃-+-≤ {suc y} {suc .(p + y)} (s≤s yz) | ⟨ p , refl ⟩ = ⟨ p , suc+ p y ⟩
@@ -227,3 +224,6 @@ even-∃' (even-suc x) | ⟨ n , refl ⟩ = ⟨ suc n , Eq.cong suc (+suc n)  �
 ∃-≤-+ ⟨ zero , refl ⟩ = x≤x
 ∃-≤-+ {zero} {.(suc (x + 0))} ⟨ suc x , refl ⟩ = z≤n
 ∃-≤-+ {suc y} {.(suc (x + suc y))} ⟨ suc x , refl ⟩ = s≤s (x≤x+y y x)
+
+∃¬-implies-¬∀ : ∀ {A : Set} {B : A → Set} → ∃[ x ] (¬ B x) → ¬ (∀ x → B x)
+∃¬-implies-¬∀ ⟨ x , y ⟩ z = y (z x)
