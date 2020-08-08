@@ -4,7 +4,7 @@ import Relation.Binary.PropositionalEquality as Eq
 open Eq using (_≡_; refl; cong; sym)
 open Eq.≡-Reasoning using (begin_; _≡⟨⟩_; step-≡; _∎)
 open import Data.Nat using (ℕ; zero; suc; _+_; _*_)
-open import Induction1 using (+comm; identityʳ)
+open import Induction1 using (+comm; *-comm; identityʳ; *-nullR)
 
 
 infixl 6 _∸_
@@ -15,13 +15,14 @@ data 𝕫 : Set where
 
 
 postulate
-  -- Equality of integers
-  z≡→ : ∀ {a b c d : ℕ} → (a ∸ b) ≡ (c ∸ d) → (a + c ≡ b + d)
-  z≡← : ∀ {a b c d : ℕ} → (a + c ≡ b + d) → (a ∸ b) ≡ (c ∸ d)
   a∸a≡0 : ∀ {a : ℕ} → (a ∸ a) ≡ 0 ∸ 0
 
 infixl 7 _⊞_
 infixl 7 _⊠_
+
+-- Equality of Integers
+_z≡z_ : 𝕫 → 𝕫 → Set
+(a ∸ b) z≡z (c ∸ d) = (a + c ≡ b + d)
 
 _⊞_ : 𝕫 → 𝕫 → 𝕫
 (a ∸ b) ⊞ (c ∸ d) = (a + c) ∸ (b + d)
@@ -49,7 +50,6 @@ _ =
 
 -- -- Integers are a commutative Ring
 -- (x + y) + z = x + (y + z)
--- xy = yx
 -- (xy)z = x(yz)
 -- x*1 = 1*x = x
 -- x(y + z) = xy + xz
@@ -94,4 +94,26 @@ _ =
     (0 ∸ 0) ⊞ (0 ∸ 0)
   ≡⟨⟩
     (0 ∸ 0)
+  ∎
+
+*-zcomm : ∀ {x y : 𝕫} → x ⊠ y ≡ y ⊠ x
+*-zcomm {a ∸ b} {c ∸ d}
+  rewrite *-comm a c | *-comm b d | *-comm a d | *-comm b c =
+  begin
+    c * a + d * b ∸ (d * a + c * b)
+  ≡⟨ cong (c * a + d * b ∸_) (+comm (d * a) (c * b)) ⟩
+    c * a + d * b ∸ (c * b + d * a)
+  ∎
+
+*-identity : ∀ (m : ℕ) → m * 1 ≡ m
+*-identity zero = refl
+*-identity (suc x) = cong suc (*-identity x)
+
+*-zindentity : ∀ {x : 𝕫} → x ⊠ (1 ∸ 0) ≡ x
+-- *-zindentity {a ∸ b} rewrite *-nullR b | *-nullR a | *-identity a | *-identity b | identityʳ a = refl
+*-zindentity {a ∸ b} rewrite *-nullR b | *-nullR a | *-identity a =
+  begin
+    (a + 0) ∸ b * 1
+  ≡⟨ {!rewrite *-identity b!} ⟩
+    a ∸ b
   ∎
