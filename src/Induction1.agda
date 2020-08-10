@@ -201,3 +201,52 @@ distrib (suc m) n p =
 -null : ∀ (n : ℕ) → zero ∸ n ≡ zero
 -null zero = refl
 -null (suc n) = refl
+
+
+_^_ : ℕ → ℕ → ℕ
+m ^ zero = 1
+m ^ (suc n) = m * (m ^ n)
+
+*-swap : ∀ (a b c d : ℕ) → ((a * b) * c) * d ≡  ((a * c) * b) * d
+*-swap a b c d rewrite *-assoc a b c | *-comm b c | sym (*-assoc a c b) = refl
+
+^-distribˡ-+-* : ∀ (m n p : ℕ) → m ^ (n + p) ≡ (m ^ n) * (m ^ p)
+^-distribˡ-+-* m zero p rewrite identityʳ (m ^ p) = refl
+^-distribˡ-+-* m (suc n) p =
+  begin
+    m * (m ^ (n + p))
+  ≡⟨ cong (m *_) (^-distribˡ-+-* m n p) ⟩
+    m * ((m ^ n) * (m ^ p))
+  ≡⟨ sym (*-assoc m (m ^ n) (m ^ p)) ⟩
+    m * (m ^ n) * (m ^ p)
+  ∎
+
+^-distribʳ-* : ∀ (m n p : ℕ) → (m * n) ^ p ≡ (m ^ p) * (n ^ p)
+^-distribʳ-* m n zero = refl
+^-distribʳ-* m n (suc p) =
+  begin
+    m * n * ((m * n) ^ p)
+  ≡⟨ cong ((m * n) *_) (^-distribʳ-* m n p) ⟩
+    m * n * ((m ^ p) * (n ^ p))
+  ≡⟨⟩
+    m * n * ((m ^ p) * (n ^ p))
+  ≡⟨ sym (*-assoc (m * n) (m ^ p) (n ^ p)) ⟩
+    m * n * (m ^ p) * (n ^ p)
+  ≡⟨ *-swap m n (m ^ p) (n ^ p) ⟩
+    m * (m ^ p) * n * (n ^ p)
+  ≡⟨ *-assoc ((m * (m ^ p))) n (n ^ p) ⟩
+    m * (m ^ p) * (n * (n ^ p))
+  ∎
+
+^-*-assoc : ∀ (m n p : ℕ) → (m ^ n) ^ p ≡ m ^ (n * p)
+^-*-assoc m n zero rewrite *-nullR n = refl
+^-*-assoc m n (suc p) =
+  begin
+    (m ^ n) * ((m ^ n) ^ p)
+  ≡⟨ cong ((m ^ n) *_) (^-*-assoc m n p) ⟩
+    (m ^ n) * (m ^ (n * p))
+  ≡⟨ sym (^-distribˡ-+-* m n (n * p)) ⟩
+    (m ^ (n + n * p))
+  ≡⟨ cong (m ^_) ((sym (*-multR n p))) ⟩
+    (m ^ (n * suc p))
+  ∎
