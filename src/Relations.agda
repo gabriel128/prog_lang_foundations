@@ -1,3 +1,5 @@
+{-# OPTIONS --rewriting #-}
+
 module Relations where
 
 import Relation.Binary.PropositionalEquality as Eq
@@ -288,11 +290,18 @@ o+e≡o (suc em) en  =  suc (e+e≡e em en)
 
 -- 2n + 1 + 2m + 1 = 2n + 2m + 2 = 2 (n+m+1) = 2k
 
-victory : {m n : ℕ} → even (m + n) → even (suc (m + suc n))
-victory {m} {n} e rewrite Data.Nat.Properties.+-suc m n = suc (suc e)
-
-
 o+o≡e : ∀ {m n : ℕ} → odd m → odd n → even (m + n)
-o+o≡e {suc m} {suc n} (suc x) (suc y) =
+o+o≡e {suc m} {suc n} (suc x) (suc y) rewrite Data.Nat.Properties.+-suc m n =
   let r = e+e≡e x y
-  in victory r
+  in suc (suc r)
+
+postulate
+  m+0 : {m : ℕ} → m + zero ≡ m
+
+open import Agda.Builtin.Equality
+open import Agda.Builtin.Equality.Rewrite
+
+{-# REWRITE m+0 #-}
+
+f1 : {m : ℕ} → odd (m + zero) → odd m
+f1 {m} x = x
