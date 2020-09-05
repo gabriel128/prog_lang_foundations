@@ -105,6 +105,7 @@ postulate
   +-comm : ∀ (m n : ℕ) → m + n ≡  n + m
   -- sym : ∀ (m n : ℕ) → m ≡ n → n ≡ m
   ≤-refl : ∀ {m n : ℕ} → m ≡ n → m ≤ n
+  ≤-+ : ∀ {m n p : ℕ} → m ≤ n → m + p ≤ n + p
   -- comm : ∀ (m n : ℕ) → m + n ≡  n + m
 -- Monotonicity
 
@@ -125,6 +126,8 @@ postulate
    (suc n) + q
   qed
 
+{-# BUILTIN EQUALITY _≡_ #-}
+
 +-monoˡ-≤ : ∀ (m n p : ℕ) → m ≤ n → m + p ≤ n + p
 +-monoˡ-≤ m n zero m≤n =
   ≤begin
@@ -136,10 +139,17 @@ postulate
   ≤⟨ ≤-refl (sym (+-identity n)) ⟩
     n + zero
   qed
++-monoˡ-≤ m n (suc p) m≤n rewrite +-suc m p | +-suc n p = s≤s (≤-+ m≤n)
+  -- ≤begin
+  --   m + suc p
+  -- ≡⟨ ? ⟩
+  --   suc (m + p)
+  -- ≤⟨ {!!} ⟩
+  --   n + suc p
+  -- qed
 
-+-monoˡ-≤ m n (suc p) m≤n = {!!}
-
--- -- +-monoˡ-≤ m n p m≤n  rewrite +-comm m p | +-comm n p  = +-monoʳ-≤ p m n m≤n
+-- +-monoˡ-≤ m n p m≤n rewrite +-comm m p | +-comm n p  = {!!}
+-- +-monoʳ-≤ p m n m≤n
 
 -- +-mono-≤ : ∀ (m n p q : ℕ) → m ≤ n → p ≤ q → m + p ≤ n + q
 -- +-mono-≤ m n p q m≤n p≤q  =  ≤-trans (+-monoˡ-≤ m n p m≤n) (+-monoʳ-≤ n p q p≤q)
