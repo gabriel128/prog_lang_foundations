@@ -207,7 +207,7 @@ _^_ : ℕ → ℕ → ℕ
 m ^ zero = 1
 m ^ (suc n) = m * (m ^ n)
 
-*-swap : ∀ (a b c d : ℕ) → ((a * b) * c) * d ≡  ((a * c) * b) * d
+*-swap : ∀ (a b c d : ℕ) → ((a * b) * c) * d ≡ ((a * c) * b) * d
 *-swap a b c d rewrite *-assoc a b c | *-comm b c | sym (*-assoc a c b) = refl
 
 ^-distribˡ-+-* : ∀ (m n p : ℕ) → m ^ (n + p) ≡ (m ^ n) * (m ^ p)

@@ -248,3 +248,51 @@ Show that `suc m ≤ n` implies `m < n`, and conversely.
 <-impl-≤ : ∀ {m n : ℕ} → m < n → suc m ≤ n
 <-impl-≤ z<s = s≤s z≤n
 <-impl-≤ (s<s m<n) = s≤s (<-impl-≤ m<n)
+
+
+-- ≤-impl-< : ∀ (m n : ℕ) → suc m ≤ n → m < n
+-- <-impl-≤ : ∀ {m n : ℕ} → m < n → suc m ≤ n
+-- ≤-trans : ∀ {m n p : ℕ} → suc m ≤ n → n ≤ p → suc m ≤ p
+
+n≤sn : {m n : ℕ} → m ≤ n → m ≤ suc n
+n≤sn z≤n = z≤n
+n≤sn (s≤s m≤n) = s≤s (n≤sn m≤n)
+
+<-trans-revisited : ∀ (m n p : ℕ) → m < n → n < p → m < p
+<-trans-revisited m n p m<n n<p =
+  let sn≤p = <-impl-≤ n<p
+      sm≤n = <-impl-≤ m<n
+      trans≤ = ≤-trans (n≤sn sm≤n) sn≤p
+  in ≤-impl-< m p trans≤
+
+-- Even
+
+
+data even : ℕ → Set
+data odd  : ℕ → Set
+
+data even where
+  zero : even zero
+  suc  : ∀ {n : ℕ} → odd n → even (suc n)
+
+data odd where
+  suc  : ∀ {n : ℕ} → even n → odd (suc n)
+
+e+e≡e : ∀ {m n : ℕ} → even m → even n → even (m + n)
+o+e≡o : ∀ {m n : ℕ} → odd m → even n → odd (m + n)
+
+e+e≡e zero     en  =  en
+e+e≡e (suc om) en  =  suc (o+e≡o om en)
+
+o+e≡o (suc em) en  =  suc (e+e≡e em en)
+
+-- 2n + 1 + 2m + 1 = 2n + 2m + 2 = 2 (n+m+1) = 2k
+
+victory : {m n : ℕ} → even (m + n) → even (suc (m + suc n))
+victory {m} {n} e rewrite Data.Nat.Properties.+-suc m n = suc (suc e)
+
+
+o+o≡e : ∀ {m n : ℕ} → odd m → odd n → even (m + n)
+o+o≡e {suc m} {suc n} (suc x) (suc y) =
+  let r = e+e≡e x y
+  in victory r

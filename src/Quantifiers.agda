@@ -8,6 +8,7 @@ open import Function using (_∘_)
 open import Data.Product using (_×_; proj₁; proj₂) renaming (_,_ to ⟨_,_⟩)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Isomorphismss using (_≃_; extensionality)
+open import Data.Empty using (⊥; ⊥-elim)
 
 ∀-elim : ∀ {A : Set} {B : A → Set} → (L : ∀ (x : A) → B x) → (M : A) → B M
 ∀-elim L M = L M
@@ -28,6 +29,7 @@ open import Isomorphismss using (_≃_; extensionality)
 ⊎∀-implies-∀⊎ (inj₂ A→C) = inj₂ ∘ A→C
 
 
+-- Does not hold
 ⊎∀-impliesConv-∀⊎ : ∀ {A : Set} {B C : A → Set} → (∀ (x : A) → B x ⊎ C x) → (∀ (x : A) → B x) ⊎ (∀ (x : A) → C x)
 ⊎∀-impliesConv-∀⊎ x = {!!}
 
@@ -95,12 +97,15 @@ data Tri : Set where
   bb : Tri
   cc : Tri
 
+postulate
+  extensionality' : ∀ {A : Set} {B : A → Set} {f g : (x : A) → B x} → (∀ (x : A) → f x ≡ g x) → f ≡ g
+
 ∀-× : ∀ {B : Tri → Set} → (∀ (x : Tri) → B x) ≃ (B aa × B bb × B cc)
 ∀-× =
   record
   { to = λ{ x → ⟨ x aa , ⟨ x bb , x cc ⟩ ⟩ }
   ; from = λ{ ⟨ fst , snd ⟩ aa → fst ; ⟨ fst , snd ⟩ bb → proj₁ snd ; ⟨ fst , snd ⟩ cc → proj₂ snd}
-  ; from∘to = λ x → {!!}
+  ; from∘to = λ x → extensionality' λ{ aa → refl ; bb → refl ; cc → refl}
   ; to∘from = λ y → refl
   }
 
@@ -137,7 +142,7 @@ odd-∃  : ∀ {n : ℕ} →  odd n → ∃[ m ] (1 + m * 2 ≡ n)
 
 even-∃ even-zero = ⟨ zero , refl ⟩
 even-∃ (even-suc x) with (odd-∃ x)
-even-∃ (even-suc x) | ⟨ n , refl ⟩ = ⟨ n , {!!} ⟩
+even-∃ (even-suc x) | ⟨ n , refl ⟩ = ⟨ suc n , refl ⟩
 -- ⟨ (suc n) , refl ⟩
 
 odd-∃  (odd-suc e)  with even-∃ e
@@ -227,3 +232,16 @@ even-∃' (even-suc x) | ⟨ n , refl ⟩ = ⟨ suc n , Eq.cong suc (+suc n)  �
 ∃-≤-+ ⟨ zero , refl ⟩ = x≤x
 ∃-≤-+ {zero} {.(suc (x + 0))} ⟨ suc x , refl ⟩ = z≤n
 ∃-≤-+ {suc y} {.(suc (x + suc y))} ⟨ suc x , refl ⟩ = s≤s (x≤x+y y x)
+
+
+¬∃≃∀¬ : ∀ {A : Set} {B : A → Set} → (¬ ∃[ x ] B x) ≃ ∀ x → ¬ B x
+¬∃≃∀¬ =
+  record
+    { to      =  λ{ ¬∃xy x y → ¬∃xy ⟨ x , y ⟩ }
+    ; from    =  λ{ ∀¬xy ⟨ x , y ⟩ → ∀¬xy x y }
+    ; from∘to =  λ{ ¬∃xy → extensionality λ{ ⟨ x , y ⟩ → refl }}
+    ; to∘from =  λ{ ∀¬xy → refl }
+    }
+
+∃¬-implies-¬∀ : ∀ {A : Set} {B : A → Set} → ∃[ x ] (¬ B x) → ¬ (∀ x → B x)
+∃¬-implies-¬∀ ⟨ x , y ⟩ z = let bx = z x in ⊥-elim (y bx)
