@@ -191,3 +191,306 @@ reverse-++-distrib (x ∷ xs) ys =
   ≡⟨⟩
     reverse ys ++ reverse (x ∷ xs)
   ∎
+
+reverse-involutive : ∀ {A : Set} (xs : List A) →  reverse (reverse xs) ≡ xs
+reverse-involutive [] =
+  begin
+    reverse (reverse [])
+  ≡⟨⟩
+    reverse []
+  ≡⟨⟩
+    []
+  ∎
+
+-- reverse []        =  []
+-- reverse (x ∷ xs)  =  reverse xs ++ [ x ]
+-- []       ++ ys  =  ys
+-- (x ∷ xs) ++ ys  =  x ∷ (xs ++ ys)
+-- reverse (xs ++ ys) ≡ reverse ys ++ reverse xs
+
+reverse-involutive (x ∷ xs) =
+  begin
+    reverse (reverse (x ∷ xs))
+  ≡⟨⟩
+    reverse (reverse xs ++ [ x ])
+  ≡⟨ reverse-++-distrib (reverse xs) [ x ] ⟩
+    reverse [ x ] ++ (reverse (reverse xs))
+  ≡⟨⟩
+    reverse (x ∷ []) ++ (reverse (reverse xs))
+  ≡⟨⟩
+    (reverse [] ++ [ x ]) ++ (reverse (reverse xs))
+  ≡⟨⟩
+    [ x ] ++ (reverse (reverse xs))
+  ≡⟨ cong ([ x ] ++_) (reverse-involutive xs) ⟩
+    [ x ] ++ xs
+  ≡⟨⟩
+    (x ∷ xs)
+  ∎
+
+-- Faster Reverse
+
+shunt : ∀ {A : Set} → List A → List A → List A
+shunt []       ys  =  ys
+shunt (x ∷ xs) ys  =  shunt xs (x ∷ ys)
+
+shunt-reverse : ∀ {A : Set} (xs ys : List A) → shunt xs ys ≡ reverse xs ++ ys
+shunt-reverse [] ys =
+  begin
+    shunt [] ys
+  ≡⟨⟩
+    ys
+  ≡⟨⟩
+    reverse [] ++ ys
+  ∎
+shunt-reverse (x ∷ xs) ys =
+  begin
+    shunt (x ∷ xs) ys
+  ≡⟨⟩
+    shunt xs (x ∷ ys)
+  ≡⟨ shunt-reverse xs (x ∷ ys) ⟩
+    reverse xs ++ (x ∷ ys)
+  ≡⟨⟩
+    reverse xs ++ ([ x ] ++ ys)
+  ≡⟨ sym (++-assoc (reverse xs) [ x ] ys) ⟩
+    (reverse xs ++ [ x ]) ++ ys
+  ≡⟨⟩
+    reverse (x ∷ xs) ++ ys
+  ∎
+
+reverse′ : ∀ {A : Set} → List A → List A
+reverse′ xs = shunt xs []
+
+reverses : ∀ {A : Set} (xs : List A) → reverse′ xs ≡ reverse xs
+reverses xs =
+  begin
+    reverse′ xs
+  ≡⟨⟩
+    shunt xs []
+  ≡⟨ shunt-reverse xs [] ⟩
+    reverse xs ++ []
+  ≡⟨ ++-identityʳ (reverse xs) ⟩
+   reverse xs
+  ∎
+
+-- Map
+
+map : ∀ {A B : Set} → (A → B) → List A → List B
+map f []        =  []
+map f (x ∷ xs)  =  f x ∷ map f xs
+
+sucs : List ℕ → List ℕ
+sucs = map suc
+
+_ : sucs [ 0 , 1 , 2 ] ≡ [ 1 , 2 , 3 ]
+_ =
+  begin
+    sucs [ 0 , 1 , 2 ]
+  ≡⟨⟩
+    map suc [ 0 , 1 , 2 ]
+  ≡⟨⟩
+    [ 1 , 2 , 3 ]
+  ∎
+
+-- Exercise map-compose (practice)
+-- Prove that the map of a composition is equal to the composition of two maps:
+-- The last step of the proof requires extensionality.
+
+-- map : ∀ {A B : Set} → (A → B) → List A → List B
+-- map f []        =  []
+-- map f (x ∷ xs)  =  f x ∷ map f xs
+postulate
+  extensionality : ∀ {A B : Set} {f g : A → B} → (∀ (x : A) → f x ≡ g x) → f ≡ g
+
+map-compose-extens : ∀ {A B C : Set}
+  → (f : A → B)
+  → (g : B → C)
+  → (xs : List A)
+  → map (λ x' → g (f x')) xs ≡ map g (map f xs)
+map-compose-extens f g [] = refl
+map-compose-extens f g (x ∷ xs) =
+  begin
+    g (f x) ∷ map (λ x' → g (f x')) xs
+  ≡⟨ cong ((g (f x)) ∷_) (map-compose-extens f g xs) ⟩
+    g (f x) ∷ map g (map f xs)
+  ∎
+
+map-compose : ∀ {A B C : Set} → (f : A → B) → (g : B → C) → map (g ∘ f) ≡ (map g ∘ map f)
+map-compose f g =
+  begin
+    map (g ∘ f)
+  ≡⟨ extensionality (λ xs → map-compose-extens f g xs) ⟩
+   (map g ∘ map f)
+  ∎
+
+-- Exercise map-++-distribute (practice)
+-- Prove the following relationship between map and append:
+
+map-++-distribute : ∀ {A B : Set}
+  (f : A → B)
+  (xs ys : List A)
+  → map f (xs ++ ys) ≡ map f xs ++ map f ys
+map-++-distribute f [] ys = refl
+map-++-distribute f (x ∷ xs) ys =
+  begin
+    f x ∷ map f (xs ++ ys)
+  ≡⟨ cong (f x ∷_) (map-++-distribute f xs ys) ⟩
+    f x ∷ map f xs ++ map f ys
+  ∎
+
+-- Exercise map-Tree (practice)
+-- Define a type of trees with leaves of type A and internal nodes of type B:
+
+data Tree (A B : Set) : Set where
+  leaf : A → Tree A B
+  node : Tree A B → B → Tree A B → Tree A B
+
+-- Define a suitable map operator over trees:
+
+map-Tree : ∀ {A B C D : Set} → (A → C) → (B → D) → Tree A B → Tree C D
+map-Tree f g (leaf x) = leaf (f x)
+map-Tree f g (node xs x ys) = node (map-Tree f g xs) (g x) (map-Tree f g ys)
+
+
+-- Folds
+
+foldr : ∀ {A B : Set} → (A → B → B) → B → List A → B
+foldr _⊗_ e []        =  e
+foldr _⊗_ e (x ∷ xs)  =  x ⊗ foldr _⊗_ e xs
+
+_ : foldr _+_ 0 [ 1 , 2 , 3 , 4 ] ≡ 10
+_ =
+  begin
+    foldr _+_ 0 (1 ∷ 2 ∷ 3 ∷ 4 ∷ [])
+  ≡⟨⟩
+    1 + foldr _+_ 0 (2 ∷ 3 ∷ 4 ∷ [])
+  ≡⟨⟩
+    1 + (2 + foldr _+_ 0 (3 ∷ 4 ∷ []))
+  ≡⟨⟩
+    1 + (2 + (3 + foldr _+_ 0 (4 ∷ [])))
+  ≡⟨⟩
+    1 + (2 + (3 + (4 + foldr _+_ 0 [])))
+  ≡⟨⟩
+    1 + (2 + (3 + (4 + 0)))
+  ∎
+
+sum : List ℕ → ℕ
+sum = foldr _+_ 0
+
+_ : sum [ 1 , 2 , 3 , 4 ] ≡ 10
+_ =
+  begin
+    sum [ 1 , 2 , 3 , 4 ]
+  ≡⟨⟩
+    foldr _+_ 0 [ 1 , 2 , 3 , 4 ]
+  ≡⟨⟩
+    10
+  ∎
+
+-- Exercise product (recommended)
+-- Use fold to define a function to find the product of a list of numbers. For example:
+
+product : List ℕ → ℕ
+product = foldr _*_ 1
+
+_ : product [ 1 , 2 , 3 , 4 ] ≡ 24
+_ = refl
+
+-- Exercise foldr-++ (recommended)
+-- Show that fold and append are related as follows:
+
+foldr-++ : ∀ {A B : Set} (_⊗_ : A → B → B) (e : B) (xs ys : List A)
+           → (foldr _⊗_ e (xs ++ ys)) ≡ (foldr _⊗_ (foldr _⊗_ e ys) xs)
+foldr-++ _⊗_ e [] ys =
+  begin
+    foldr _⊗_ e ([] ++ ys)
+  ≡⟨⟩
+    foldr _⊗_ (foldr _⊗_ e ys) []
+  ∎
+foldr-++ _⊗_ e (x ∷ xs) ys =
+  begin
+    (x ⊗ foldr _⊗_ e (xs ++ ys))
+  ≡⟨⟩
+    foldr _⊗_ e (x ∷ (xs ++ ys))
+  ≡⟨⟩
+    foldr _⊗_ e ((x ∷ xs) ++ ys)
+  ≡⟨ cong (x ⊗_) (foldr-++ _⊗_ e xs ys) ⟩
+    foldr _⊗_ (foldr _⊗_ e ys) (x ∷  xs)
+  ≡⟨⟩
+    (x ⊗ foldr _⊗_ (foldr _⊗_ e ys) xs)
+  ∎
+
+-- Exercise foldr-∷ (practice)
+-- Show
+
+foldr-∷ : ∀ {A : Set} (xs : List A) → foldr _∷_ [] xs ≡ xs
+foldr-∷ [] = refl
+foldr-∷ (x ∷ xs) =
+  begin
+    x ∷ foldr _∷_ [] xs
+  ≡⟨ cong (x ∷_) (foldr-∷ xs) ⟩
+    x ∷ xs
+  ∎
+
+-- Show as a consequence of foldr-++ above that
+
+
+-- []       ++ ys  =  ys
+-- (x ∷ xs) ++ ys  =  x ∷ (xs ++ ys)
+-- foldr _⊗_ e (x ∷ xs)  =  x ⊗ foldr _⊗_ e xs
+-- (foldr _::_ [] (xs ++ ys)) ≡ (foldr _::_ (foldr _::_ [] ys) xs)
+foldr-++eq : ∀ {A : Set} (xs ys : List A) → xs ++ ys ≡ foldr _∷_ ys xs
+foldr-++eq xs ys rewrite (sym (foldr-∷ ys)) =
+  begin
+    xs ++ foldr _∷_ [] ys
+  ≡⟨ cong (xs ++_) (foldr-∷ ys) ⟩
+    xs ++ ys
+  ≡⟨ sym (foldr-∷ (xs ++ ys)) ⟩
+    foldr _∷_ [] (xs ++ ys)
+  ≡⟨ foldr-++ _∷_ [] xs ys ⟩
+    foldr _∷_ (foldr _∷_ [] ys) xs
+  ∎
+
+
+-- Exercise map-is-foldr (practice)
+-- Show that map can be defined using fold:
+
+-- extensionality : ∀ {A B : Set} {f g : A → B} → (∀ (x : A) → f x ≡ g x) → f ≡ g
+map-is-foldr' : ∀ {A B : Set} (f : A → B) (xs : List A) → map f xs ≡ foldr (λ x₁ → _∷_ (f x₁)) [] xs
+map-is-foldr' f [] = refl
+map-is-foldr' f (x ∷ xs) = cong (f x ∷_) (map-is-foldr' f xs)
+
+map-is-foldr : ∀ {A B : Set} (f : A → B) → map f ≡ foldr (λ x xs → f x ∷ xs) []
+map-is-foldr f = extensionality λ xs → map-is-foldr' f xs
+
+
+-- Exercise fold-Tree (practice)
+-- Define a suitable fold function for the type of trees given earlier:
+
+-- data Tree (A B : Set) : Set where
+--   leaf : A → Tree A B
+--   node : Tree A B → B → Tree A B → Tree A B
+
+fold-tree : ∀ {A B C : Set} → (A → C) → (C → B → C → C) → Tree A B → C
+fold-tree f g (leaf x) = f x
+fold-tree f g (node lhs x rhs) = g (fold-tree f g lhs) x (fold-tree f g rhs)
+
+-- -- Your code goes here
+-- Exercise map-is-fold-Tree (practice)
+-- Demonstrate an analogue of map-is-foldr for the type of trees.
+
+-- map-is-foldr : ∀ {A B : Set} (f : A → B) → map f ≡ foldr (λ x xs → f x ∷ xs) []
+-- map-is-foldr f = extensionality λ xs → map-is-foldr' f xs
+-- -- Your code goes here
+-- Exercise sum-downFrom (stretch)
+-- Define a function that counts down as follows:
+
+-- downFrom : ℕ → List ℕ
+-- downFrom zero     =  []
+-- downFrom (suc n)  =  n ∷ downFrom n
+-- For example:
+
+-- _ : downFrom 3 ≡ [ 2 , 1 , 0 ]
+-- _ = refl
+-- Prove that the sum of the numbers (n - 1) + ⋯ + 0 is equal to n * (n ∸ 1) / 2:
+
+-- sum (downFrom n) * 2 ≡ n * (n ∸ 1)

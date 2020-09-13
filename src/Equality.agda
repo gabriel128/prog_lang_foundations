@@ -74,8 +74,8 @@ data _≤_ : ℕ → ℕ → Set where
 module ≤-Reasoning where
 
   infix 1 ≤begin_
-  infixr 2 _≤⟨⟩_ _≤⟨_⟩_
-  infix 3 _qed
+  infixr 2 _≤⟨⟩_ _≤⟨_⟩_ _≤_by_
+  infix 3 _qedmf
 
   ≤begin_ : ∀ {x y : ℕ} → x ≤ y → x ≤ y
   ≤begin_ x = x
@@ -87,9 +87,14 @@ module ≤-Reasoning where
   .zero ≤⟨ z≤n ⟩ y≤z = z≤n
   (suc p) ≤⟨ s≤s r ⟩ s≤s s = s≤s ( p ≤⟨ r ⟩ s)
 
-  _qed : ∀ (x : ℕ)  → x ≤ x
-  zero qed = z≤n
-  suc x qed = s≤s (x qed)
+  _≤_by_ : ∀ (x : ℕ) {y z : ℕ} → x ≤ y → y ≤ z → x ≤ z
+  zero ≤ y by z = z≤n
+  suc x ≤ s≤s y by s≤s z = s≤s (x ≤ y by z)
+  -- (suc p) ≤ s≤s s by s≤s r = s≤s ( p ≤ s by r )
+
+  _qedmf : ∀ (x : ℕ)  → x ≤ x
+  zero qedmf = z≤n
+  suc x qedmf = s≤s (x qedmf)
 
 open ≤-Reasoning
 
@@ -103,11 +108,12 @@ postulate
   +-identity : ∀ (m : ℕ) → m + zero ≡ m
   +-suc : ∀ (m n : ℕ) → m + suc n ≡ suc (m + n)
   +-comm : ∀ (m n : ℕ) → m + n ≡  n + m
-  -- sym : ∀ (m n : ℕ) → m ≡ n → n ≡ m
-  ≤-refl : ∀ {m n : ℕ} → m ≡ n → m ≤ n
-  ≤-+ : ∀ {m n p : ℕ} → m ≤ n → m + p ≤ n + p
-  -- comm : ∀ (m n : ℕ) → m + n ≡  n + m
+
 -- Monotonicity
+
+≡→≤ : ∀ {m n : ℕ} → m ≡ n → m ≤ n
+≡→≤ {zero} {.zero} refl = z≤n
+≡→≤ {suc m} {.(suc m)} refl = s≤s (≡→≤ refl)
 
 +-monoʳ-≤ : ∀ (n p q : ℕ) → p ≤ q → (n + p) ≤ (n + q)
 +-monoʳ-≤ zero p q p≤q =
@@ -117,14 +123,14 @@ postulate
     zero + p
   ≤⟨ p≤q ⟩
     zero + q
-  qed
+  qedmf
 
 +-monoʳ-≤ (suc n) p q p≤q =
   ≤begin
    (suc n) + p
-   ≤⟨ s≤s (+-monoʳ-≤ n p q p≤q) ⟩
+  ≤⟨ s≤s (+-monoʳ-≤ n p q p≤q) ⟩
    (suc n) + q
-  qed
+  qedmf
 
 {-# BUILTIN EQUALITY _≡_ #-}
 
@@ -132,24 +138,31 @@ postulate
 +-monoˡ-≤ m n zero m≤n =
   ≤begin
     m + zero
-    ≤⟨ ≤-refl (+-identity m) ⟩
+  ≤⟨ ≡→≤ (+-identity m) ⟩
     m
   ≤⟨ m≤n ⟩
     n
-  ≤⟨ ≤-refl (sym (+-identity n)) ⟩
+  ≤⟨ ≡→≤ (sym (+-identity n)) ⟩
     n + zero
-  qed
-+-monoˡ-≤ m n (suc p) m≤n rewrite +-suc m p | +-suc n p = s≤s (≤-+ m≤n)
-  -- ≤begin
-  --   m + suc p
-  -- ≡⟨ ? ⟩
-  --   suc (m + p)
-  -- ≤⟨ {!!} ⟩
-  --   n + suc p
-  -- qed
+  qedmf
+-- +-monoˡ-≤ m n (suc p) m≤n rewrite +-suc m p | +-suc n p = s≤s (+-monoˡ-≤ m n p m≤n)
++-monoˡ-≤ m n (suc p) m≤n =
+  ≤begin
+    m + suc p
+  ≤⟨ ≡→≤ (+-suc m p)  ⟩
+    suc (m + p)
+  ≤⟨ s≤s (+-monoˡ-≤ m n p m≤n)⟩
+    suc (n + p)
+  ≤⟨ ≡→≤ (sym (+-suc n p))  ⟩
+    n + suc p
+  qedmf
 
--- +-monoˡ-≤ m n p m≤n rewrite +-comm m p | +-comm n p  = {!!}
--- +-monoʳ-≤ p m n m≤n
-
--- +-mono-≤ : ∀ (m n p q : ℕ) → m ≤ n → p ≤ q → m + p ≤ n + q
--- +-mono-≤ m n p q m≤n p≤q  =  ≤-trans (+-monoˡ-≤ m n p m≤n) (+-monoʳ-≤ n p q p≤q)
++-mono-≤ : ∀ (m n p q : ℕ) → m ≤ n → p ≤ q → m + p ≤ n + q
++-mono-≤ m n p q m≤n p≤q =
+  ≤begin
+    m + p
+  ≤⟨ +-monoʳ-≤ m p q p≤q ⟩
+    m + q
+  ≤⟨ +-monoˡ-≤ m n q m≤n ⟩
+    n + q
+  qedmf

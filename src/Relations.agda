@@ -280,23 +280,42 @@ data even where
 data odd where
   suc  : ∀ {n : ℕ} → even n → odd (suc n)
 
+postulate
+  m+0 : {m : ℕ} → m + zero ≡ m
+
 e+e≡e : ∀ {m n : ℕ} → even m → even n → even (m + n)
 o+e≡o : ∀ {m n : ℕ} → odd m → even n → odd (m + n)
+e+o≡o : ∀ {n m : ℕ} → even n → odd m → odd (n + m)
+o+o≡e : ∀ {m n : ℕ} → odd m → odd n → even (m + n)
 
-e+e≡e zero     en  =  en
-e+e≡e (suc om) en  =  suc (o+e≡o om en)
+e+e≡e {m} {n} zero     en  =  en
+e+e≡e {m} {n} (suc om) en  = suc (o+e≡o om en)
 
 o+e≡o (suc em) en  =  suc (e+e≡e em en)
 
--- 2n + 1 + 2m + 1 = 2n + 2m + 2 = 2 (n+m+1) = 2k
+e+o≡o zero em = em
+e+o≡o (suc en) em = suc (o+o≡e en em)
 
-o+o≡e : ∀ {m n : ℕ} → odd m → odd n → even (m + n)
-o+o≡e {suc m} {suc n} (suc x) (suc y) rewrite Data.Nat.Properties.+-suc m n =
-  let r = e+e≡e x y
-  in suc (suc r)
+data _+'_ : ℕ → ℕ → Set where
+  m+n : ∀ {m n : ℕ} → m +' n
 
 postulate
-  m+0 : {m : ℕ} → m + zero ≡ m
+  comm→' : ∀ (m n : ℕ) → m +' n → n +' m
+
+
+-- f : ∀ {m n : ℕ} → odd (m + n) → odd (n + m)
+-- f {m} {n} omn with (m + n) | +-comm m n
+-- f {m} {n} omn | .(n + m) | refl = omn
+
+-- o+o≡e {suc m} {n} (suc x) (y) =
+--   let r = o+e≡o y x
+--   in suc (f r)
+
+-- f {zero} {n} omn = omn
+-- f {suc m} {n} omn = {!!}
+o+o≡e {suc m} {n} (suc x) (y) = suc (e+o≡o x y)
+
+-- rewrite Data.Nat.Properties.+-suc m n =
 
 open import Agda.Builtin.Equality
 open import Agda.Builtin.Equality.Rewrite
