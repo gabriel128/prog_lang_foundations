@@ -434,10 +434,6 @@ foldr-∷ (x ∷ xs) =
 -- Show as a consequence of foldr-++ above that
 
 
--- []       ++ ys  =  ys
--- (x ∷ xs) ++ ys  =  x ∷ (xs ++ ys)
--- foldr _⊗_ e (x ∷ xs)  =  x ⊗ foldr _⊗_ e xs
--- (foldr _::_ [] (xs ++ ys)) ≡ (foldr _::_ (foldr _::_ [] ys) xs)
 foldr-++eq : ∀ {A : Set} (xs ys : List A) → xs ++ ys ≡ foldr _∷_ ys xs
 foldr-++eq xs ys rewrite (sym (foldr-∷ ys)) =
   begin
@@ -478,19 +474,186 @@ fold-tree f g (node lhs x rhs) = g (fold-tree f g lhs) x (fold-tree f g rhs)
 -- Exercise map-is-fold-Tree (practice)
 -- Demonstrate an analogue of map-is-foldr for the type of trees.
 
--- map-is-foldr : ∀ {A B : Set} (f : A → B) → map f ≡ foldr (λ x xs → f x ∷ xs) []
--- map-is-foldr f = extensionality λ xs → map-is-foldr' f xs
--- -- Your code goes here
+-- map-Tree : ∀ {A B C D : Set} → (A → C) → (B → D) → Tree A B → Tree C D
+-- map-Tree f g (leaf x) = leaf (f x)
+-- map-Tree f g (node xs x ys) = node (map-Tree f g xs) (g x) (map-Tree f g ys)
+
+map-is-fold-tree' : ∀ {A B C D : Set} (f : A → C) (g : B → D) (xs : Tree A B)
+                    → map-Tree f g xs ≡ fold-tree (λ x → leaf (f x)) (λ lhs x rhs → node lhs (g x) rhs) xs
+map-is-fold-tree' f g (leaf x) = refl
+map-is-fold-tree' f g (node lhs x rhs) rewrite map-is-fold-tree' f g lhs | map-is-fold-tree' f g rhs = refl
+
+map-is-fold-tree : ∀ {A B C D : Set} (f : A → C) (g : B → D)
+                   → map-Tree f g ≡ fold-tree (λ x → leaf (f x)) (λ lhs x rhs → node lhs (g x) rhs)
+map-is-fold-tree f g = extensionality λ tree → map-is-fold-tree' f g tree
+
 -- Exercise sum-downFrom (stretch)
 -- Define a function that counts down as follows:
 
--- downFrom : ℕ → List ℕ
--- downFrom zero     =  []
--- downFrom (suc n)  =  n ∷ downFrom n
+downFrom : ℕ → List ℕ
+downFrom zero     =  []
+downFrom (suc n)  =  n ∷ downFrom n
 -- For example:
 
--- _ : downFrom 3 ≡ [ 2 , 1 , 0 ]
--- _ = refl
+_ : downFrom 3 ≡ [ 2 , 1 , 0 ]
+_ = refl
+
 -- Prove that the sum of the numbers (n - 1) + ⋯ + 0 is equal to n * (n ∸ 1) / 2:
 
--- sum (downFrom n) * 2 ≡ n * (n ∸ 1)
+-- []       ++ ys  =  ys
+-- (x ∷ xs) ++ ys  =  x ∷ (xs ++ ys)
+-- foldr _⊗_ e (x ∷ xs)  =  x ⊗ foldr _⊗_ e xs
+-- (foldr _::_ [] (xs ++ ys)) ≡ (foldr _::_ (foldr _::_ [] ys) xs)
+
+-- _-_ : Nat → Nat → Nat
+-- n     - zero = n
+-- zero  - suc m = zero
+-- suc n - suc m = n - m
+
+  -- n+n*n : (n : ℕ) → n + (n + zero) + n * (n ∸ 1) ≡ n + n * n
+
+-- (suc m) * n  =  n + (m * n)
+
+open import Induction1 using (distrib; *-comm; +suc; *-multR)
+
+n+n≡2n : ∀ {n : ℕ} → n * 2 ≡ n + n
+n+n≡2n {zero} = refl
+n+n≡2n {suc n} rewrite +suc n n = cong (suc ∘ suc) (n+n≡2n {n})
+
+n-assoc : {n : ℕ} → (n + n + (n + n * n)) ≡ (n + (n + (n + n * n)))
+n-assoc {n} rewrite +-assoc n n (n + n * n) = refl
+
+n+n*n : {n : ℕ} → n * 2 + n * (n ∸ 1) ≡ n + n * n
+n+n*n {zero} = refl
+n+n*n {suc n} rewrite +suc n (n + n * suc n) | *-multR n n | n+n≡2n {n} | n-assoc {n} = refl
+
+-- distrib : ∀ (m n p) → (m + n) * p ≡ m * p + n * p
+sum-of-n : ∀ {n : ℕ} → sum (downFrom n) * 2 ≡ n * (n ∸ 1)
+sum-of-n {zero} = refl
+sum-of-n {suc n} =
+  begin
+    (n + sum (downFrom n)) * 2
+  ≡⟨ distrib n (sum (downFrom n)) 2 ⟩
+    n * 2 + sum (downFrom n) * 2
+  ≡⟨ cong ((n * 2) +_) (sum-of-n {n}) ⟩
+    (n * 2) + n * (n ∸ 1)
+  ≡⟨ n+n*n {n} ⟩
+    n + n * n
+  ∎
+
+-- Monoid
+
+record IsMonoid {A : Set} (_⊗_ : A → A → A) (e : A) : Set where
+  field
+    assoc : ∀ (x y z : A) → (x ⊗ y) ⊗ z ≡ x ⊗ (y ⊗ z)
+    identityˡ : ∀ (x : A) → e ⊗ x ≡ x
+    identityʳ : ∀ (x : A) → x ⊗ e ≡ x
+
+open IsMonoid
+
++-monoid : IsMonoid _+_ 0
++-monoid =
+  record
+    { assoc = +-assoc
+    ; identityˡ = +-identityˡ
+    ; identityʳ = +-identityʳ
+    }
+
+*-monoid : IsMonoid _*_ 1
+*-monoid =
+  record
+    { assoc = *-assoc
+    ; identityˡ = *-identityˡ
+    ; identityʳ = *-identityʳ
+    }
+
+++-monoid : ∀ {A : Set} → IsMonoid {List A} _++_ []
+++-monoid =
+  record
+    { assoc = ++-assoc
+    ; identityˡ = ++-identityˡ
+    ; identityʳ = ++-identityʳ
+    }
+
+foldr-monoid : ∀ {A : Set} (_⊗_ : A → A → A) (e : A) → IsMonoid _⊗_ e →
+  ∀ (xs : List A) (y : A) → foldr _⊗_ y xs ≡ (foldr _⊗_ e xs) ⊗ y
+foldr-monoid _⊗_ e ⊗-monoid [] y =
+  begin
+    foldr _⊗_ y []
+  ≡⟨⟩
+    y
+  ≡⟨ sym (identityˡ ⊗-monoid y) ⟩
+    (e ⊗ y)
+  ≡⟨⟩
+    (foldr _⊗_ e []) ⊗ y
+  ∎
+
+foldr-monoid _⊗_ e ⊗-monoid (x ∷ xs) y =
+  begin
+    foldr _⊗_ y (x ∷ xs)
+  ≡⟨⟩
+    x ⊗ (foldr _⊗_ y xs)
+  ≡⟨ cong (x ⊗_) (foldr-monoid _⊗_ e ⊗-monoid xs y) ⟩
+    x ⊗ (foldr _⊗_ e xs ⊗ y)
+  ≡⟨ sym (assoc ⊗-monoid x (foldr _⊗_ e xs) y) ⟩
+    (x ⊗ foldr _⊗_ e xs) ⊗ y
+  ≡⟨⟩
+    foldr _⊗_ e (x ∷ xs) ⊗ y
+  ∎
+
+foldr-monoid-++ : ∀ {A : Set} (_⊗_ : A → A → A) (e : A) → IsMonoid _⊗_ e →
+  ∀ (xs ys : List A) → foldr _⊗_ e (xs ++ ys) ≡ foldr _⊗_ e xs ⊗ foldr _⊗_ e ys
+foldr-monoid-++ _⊗_ e monoid-⊗ xs ys =
+  begin
+    foldr _⊗_ e (xs ++ ys)
+  ≡⟨ foldr-++ _⊗_ e xs ys ⟩
+    foldr _⊗_ (foldr _⊗_ e ys) xs
+  ≡⟨ foldr-monoid _⊗_ e monoid-⊗ xs (foldr _⊗_ e ys) ⟩
+    foldr _⊗_ e xs ⊗ foldr _⊗_ e ys
+  ∎
+
+  -- foldr _⊗_ e [ x , y , z ]  =  x ⊗ (y ⊗ (z ⊗ e))
+  -- foldl _⊗_ e [ x , y , z ]  =  ((e ⊗ x) ⊗ y) ⊗ z
+
+-- foldr : ∀ {A B : Set} → (A → B → B) → B → List A → B
+foldl : ∀ {A B : Set} → (B → A → B) → B → List A → B
+foldl _⊗_ e [] = e
+foldl _⊗_ e (x ∷ xs) = foldl _⊗_ (e ⊗ x) xs
+
+-- assoc : ∀ (x y z : A) → (x ⊗ y) ⊗ z ≡ x ⊗ (y ⊗ z)
+-- identityˡ : ∀ (x : A) → e ⊗ x ≡ x
+-- identityʳ : ∀ (x : A) → x ⊗ e ≡ x
+-- foldr _⊗_ e (x ∷ xs)  =  x ⊗ foldr _⊗_ e xs
+-- foldl _⊗_ e (x ∷ xs) = foldl _⊗_ (e ⊗ x) xs
+-- foldr _⊗_ y xs ≡ (foldr _⊗_ e xs) ⊗ y
+
+foldl-monoid : ∀ {A : Set} (_⊗_ : A → A → A) (e : A) → IsMonoid _⊗_ e →
+  ∀ (xs : List A) (y : A) → foldl _⊗_ y xs ≡ (y ⊗ (foldl _⊗_ e xs))
+foldl-monoid _⊗_ e isMonoid [] y =
+  begin
+    y
+  ≡⟨ sym ((identityʳ isMonoid) y) ⟩
+    (y ⊗ e)
+  ∎
+foldl-monoid _⊗_ e isMonoid (x ∷ xs) y rewrite identityˡ isMonoid x =
+  begin
+    foldl _⊗_ (y ⊗ x) xs
+  ≡⟨ foldl-monoid _⊗_ e isMonoid xs (y ⊗ x) ⟩
+    (y ⊗ x) ⊗ foldl _⊗_ e xs
+  ≡⟨ assoc isMonoid y x (foldl _⊗_ e xs) ⟩
+    (y ⊗ (x ⊗ foldl _⊗_ e xs))
+  ≡⟨ cong (y ⊗_) (sym (foldl-monoid _⊗_ e isMonoid xs x)) ⟩
+    (y ⊗ foldl _⊗_ x xs)
+  ∎
+
+foldr-monoid-foldl : ∀ {A : Set} (_⊗_ : A → A → A)  (e : A) → IsMonoid _⊗_ e →
+  ∀ (xs : List A) → foldr _⊗_ e xs  ≡ foldl _⊗_ e xs
+foldr-monoid-foldl _⊗_ e isMonoid [] = refl
+foldr-monoid-foldl _⊗_ e isMonoid (x ∷ xs) rewrite identityˡ isMonoid x =
+  begin
+    (x ⊗ foldr _⊗_ e xs)
+  ≡⟨ cong (x ⊗_) (foldr-monoid-foldl _⊗_ e isMonoid xs) ⟩
+    (x ⊗ (foldl _⊗_ e xs))
+  ≡⟨ sym (foldl-monoid _⊗_ e isMonoid xs x) ⟩
+    foldl _⊗_ x xs
+  ∎
