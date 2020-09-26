@@ -777,3 +777,42 @@ All-++-≃ xs ys =
     from : ∀ {A} {P : A → Set} (xs : List A) → All (λ x → ¬ P x ) xs → ¬ (Any P xs)
     from [] [] ()
     from (x ∷ xs) (notPx ∷ notPs) = λ{ (here Px) → notPx Px ; (there y) → (from xs notPs) y}
+
+postulate
+  extensionality' : ∀ {A : Set} {B : A → Set} {f g : (x : A) → B x} → (∀ (x : A) → f x ≡ g x) → f ≡ g
+
+All-∀ :  ∀ {A : Set} {P : A → Set} {x : A} (xs : List A) → All P xs ≃ (∀ {x} → x ∈ xs → P x)
+All-∀ {A} {P} {x} xs =
+  record {
+    to = to xs
+    ; from = from xs
+    ; from∘to = fromTo {A} {P} {x} xs
+    ; to∘from = λ y → {!extensionality ? ?!}
+    }
+    where
+      to : ∀ {A} {P : A → Set} (xs : List A) → All P xs → {x : A} → Any (_≡_ x) xs → P x
+      to (x' ∷ xs) (Px1 ∷ all) (here x) rewrite x =  Px1
+      to (x' ∷ xs) (Px1 ∷ all) (there any) = to xs all any
+
+      from : ∀ {A} {P : A → Set} (xs : List A) → ({x : A} → Any (_≡_ x) xs → P x) → All P xs
+      from [] anyToPx = []
+      from (x ∷ xs) anyToPx = anyToPx (here refl) ∷ from xs (λ {x} z → anyToPx (there z))
+
+      fromTo : ∀ {A} {P : A → Set} {x : A} (xs : List A) (x₁ : All P xs) → from xs (to xs x₁) ≡ x₁
+      fromTo {A} {P} {x'} [] [] = refl
+      fromTo {A} {P} {x'} (x ∷ xs) (Px ∷ all) = cong (Px ∷_) (fromTo {A} {P} {x'} xs all)
+
+-- Decidable
+
+all : ∀ {A : Set} → (A → Bool) → List A → Bool
+all p  =  foldr _∧_ true ∘ map p
+
+Decidable : ∀ {A : Set} → (A → Set) → Set
+Decidable {A} P  =  ∀ (x : A) → Dec (P x)
+
+All? : ∀ {A : Set} {P : A → Set} → Decidable P → Decidable (All P)
+All? P? []                                 =  yes []
+All? P? (x ∷ xs) with P? x   | All? P? xs
+...                 | yes Px | yes Pxs     =  yes (Px ∷ Pxs)
+...                 | no ¬Px | _           =  no λ{ (Px ∷ Pxs) → ¬Px Px   }
+...                 | _      | no ¬Pxs     =  no λ{ (Px ∷ Pxs) → ¬Pxs Pxs }
