@@ -11,6 +11,7 @@ open import Data.Product using (_×_; ∃; ∃-syntax) renaming (_,_ to ⟨_,_�
 open import Function using (_∘_)
 open import Level using (Level)
 open import Isomorphismss using (_≃_; _⇔_)
+open import Data.Sum using (_⊎_; inj₁; inj₂; fromInj₁; fromInj₂ )
 
 data List (A : Set) : Set where
   []  : List A
@@ -657,3 +658,122 @@ foldr-monoid-foldl _⊗_ e isMonoid (x ∷ xs) rewrite identityˡ isMonoid x =
   ≡⟨ sym (foldl-monoid _⊗_ e isMonoid xs x) ⟩
     foldl _⊗_ x xs
   ∎
+
+-- All
+
+data All {A : Set} (P : A → Set) : List A → Set where
+  []  : All P []
+  _∷_ : ∀ {x : A} {xs : List A} → P x → All P xs → All P (x ∷ xs)
+
+_ : All (_≤ 2) [ 0 , 1 , 2 ]
+_ = z≤n ∷ s≤s z≤n ∷ s≤s (s≤s z≤n) ∷ []
+
+
+-- Any
+
+data Any {A : Set} (P : A → Set) : List A → Set where
+  here  : ∀ {x : A} {xs : List A} → P x → Any P (x ∷ xs)
+  there : ∀ {x : A} {xs : List A} → Any P xs → Any P (x ∷ xs)
+
+infix 4 _∈_ _∉_
+
+_∈_ : ∀ {A : Set} (x : A) (xs : List A) → Set
+x ∈ xs = Any (x ≡_) xs
+
+_∉_ : ∀ {A : Set} (x : A) (xs : List A) → Set
+x ∉ xs = ¬ (x ∈ xs)
+
+_ : 0 ∈ [ 0 , 1 , 0 , 2 ]
+_ = here refl
+
+_ : 0 ∈ [ 0 , 1 , 0 , 2 ]
+_ = there (there (here refl))
+
+not-in : 3 ∉ [ 0 , 1 , 0 , 2 ]
+not-in (here ())
+not-in (there (here ()))
+not-in (there (there (here ())))
+not-in (there (there (there (here ()))))
+not-in (there (there (there (there ()))))
+
+All-++-⇔ : ∀ {A : Set} {P : A → Set} (xs ys : List A) → All P (xs ++ ys) ⇔ (All P xs × All P ys)
+All-++-⇔ xs ys =
+  record
+  { to       =  to xs ys
+  ; from     =  from xs ys
+  }
+  where
+
+  to : ∀ {A : Set} {P : A → Set} (xs ys : List A) → All P (xs ++ ys) → (All P xs × All P ys)
+  to [] ys Pys = ⟨ [] , Pys ⟩
+  to (x ∷ xs) ys (Px ∷ Pxs++ys) with to xs ys Pxs++ys
+  ... | ⟨ Pxs , Pys ⟩ = ⟨ Px ∷ Pxs , Pys ⟩
+
+  from : ∀ { A : Set} {P : A → Set} (xs ys : List A) → All P xs × All P ys → All P (xs ++ ys)
+  from [] ys ⟨ [] , Pys ⟩ = Pys
+  from (x ∷ xs) ys ⟨ Px ∷ Pxs , Pys ⟩ =  Px ∷ from xs ys ⟨ Pxs , Pys ⟩
+
+
+-- data Any {A : Set} (P : A → Set) : List A → Set where
+--   here  : ∀ {x : A} {xs : List A} → P x → Any P (x ∷ xs)
+--   there : ∀ {x : A} {xs : List A} → Any P xs → Any P (x ∷ xs)
+Any-++-⇔ : ∀ {A : Set} {P : A → Set} (xs ys : List A) → Any P (xs ++ ys) ⇔ (Any P xs ⊎ Any P ys)
+Any-++-⇔ xs ys =
+  record
+  { to = to xs ys
+  ; from = from xs ys
+  }
+
+  where
+    to : ∀ {A} {P : A → Set} (xs ys : List A) → Any P (xs ++ ys) → Any P xs ⊎ Any P ys
+    to [] ys Ps = inj₂ Ps
+    to (x ∷ xs) ys (here x') = inj₁ (here x')
+    to (x ∷ xs) ys (there Ps) with to xs ys Ps
+    to (x ∷ xs) ys (there Ps) | inj₁ x' = inj₁ (there x')
+    to (x ∷ xs) ys (there Ps) | inj₂ y = inj₂ y
+
+    from : ∀ {A} {P : A → Set} (xs ys : List A) → Any P xs ⊎ Any P ys → Any P (xs ++ ys)
+    from [] ys (inj₂ y) = y
+    from (x ∷ xs) ys (inj₁ (here Px)) = here Px
+    from (x ∷ xs) ys (inj₁ (there y)) = there (from xs ys ((inj₁ y)))
+    from (x ∷ xs) ys (inj₂ y) = there (from xs ys (inj₂ y))
+
+-- _∈_ : ∀ {A : Set} (x : A) (xs : List A) → Set
+-- x ∈ xs = Any (x ≡_) xs
+∈-++-⇔ : ∀ {A : Set} {P : A → Set} {x : A} (xs ys : List A) → (x ∈ (xs ++ ys)) ⇔ ((x ∈ xs) ⊎ (x ∈ ys))
+∈-++-⇔ {A} {P} {x} xs ys = Any-++-⇔ {A} {(x ≡_)} xs ys
+
+All-++-≃ : ∀ {A : Set} {P : A → Set} (xs ys : List A) → (All P (xs ++ ys)) ≃ (All P xs × All P ys)
+All-++-≃ xs ys =
+  record {
+  to = _⇔_.to (All-++-⇔ xs ys)
+  ; from = _⇔_.from (All-++-⇔ xs ys)
+  ; from∘to = λ x → fromTo xs ys x
+  ; to∘from = toFrom xs ys
+  }
+
+  where
+    fromTo : ∀ {A} {P : A → Set} (xs ys : List A) (x : All P (xs ++ ys)) →
+           (_⇔_.from (All-++-⇔ xs ys) (_⇔_.to (All-++-⇔ xs ys) x)) ≡ x
+    fromTo [] ys Ps = refl
+    fromTo (x ∷ xs) ys (Ps ∷ Pss) = cong (Ps ∷_) (fromTo xs ys Pss)
+
+    toFrom : ∀ {A} {P : A → Set} (xs ys : List A) (y : Data.Product.Σ (All P xs) (λ x → All P ys)) →
+                _⇔_.to (All-++-⇔ xs ys) (_⇔_.from (All-++-⇔ xs ys) y) ≡ y
+    toFrom [] ys ⟨ [] , snd ⟩ = refl
+    toFrom (x ∷ xs) ys ⟨ Px ∷ Pxs , Pys ⟩ = cong (λ{ ⟨ Pxs' , snd ⟩ → ⟨ Px ∷ Pxs' , snd ⟩ }) (toFrom xs ys ⟨ Pxs , Pys ⟩)
+
+¬Any⇔All¬ : ∀ {A} {P : A → Set} (xs : List A) → (¬_ ∘ Any P) xs ⇔ All (¬_ ∘ P) xs
+¬Any⇔All¬  xs =
+  record
+  { to = to xs
+  ; from = from xs
+  }
+  where
+    to : ∀ {A} {P : A → Set} (xs : List A) → ¬ (Any P xs) → All (λ x → ¬ P x ) xs
+    to [] notAny = []
+    to (x ∷ xs) notAny = (λ y → notAny (here y)) ∷ to xs λ y → notAny (there y)
+
+    from : ∀ {A} {P : A → Set} (xs : List A) → All (λ x → ¬ P x ) xs → ¬ (Any P xs)
+    from [] [] ()
+    from (x ∷ xs) (notPx ∷ notPs) = λ{ (here Px) → notPx Px ; (there y) → (from xs notPs) y}
